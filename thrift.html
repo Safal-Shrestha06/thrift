@@ -1,0 +1,133 @@
+﻿<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>ThriftStore Clone</title>
+		<link rel="stylesheet" href="thrift.css" />
+	</head>
+	<body>
+		<div class="page-shell">
+			<header class="site-header">
+				<a class="brand" href="#">
+					<div class="brand-mark">Thrift</div>
+					<span>ThriftStore</span>
+				</a>
+				<div class="header-actions">
+          <a class="btn btn-outline" href="login.html">Login</a>
+          <a class="btn btn-primary" href="signup.html">Sign Up</a>
+			</header>
+
+			<section class="hero-panel">
+				<div class="hero-copy">
+					<p class="hero-label">Your thrift. Your profit.</p>
+					<h1>Clear Your Closet. Fill Your Wallet.</h1>
+					<p>
+						Buy, sell, and discover secondhand fashion in one stylish
+						marketplace with instant listing and easy checkout.
+					</p>
+					<div class="hero-buttons">
+						<button class="btn btn-primary">Sell Your Item</button>
+						<button class="btn btn-outline">Explore Market</button>
+					</div>
+				</div>
+				<div class="hero-media">
+					<div class="hero-card">
+						<div class="hero-badge">ThriftStore</div>
+						<div class="hero-graphic"></div>
+						<div class="hero-stat">
+							<span>Take Home Up to</span>
+							<strong>80%</strong>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="search-panel">
+				<div class="search-bar">
+					<span class="icon">🔎</span>
+					<input
+						id="searchInput"
+						type="search"
+						placeholder="Search"
+						aria-label="Search thrift items"
+					/>
+				</div>
+				<button class="btn btn-secondary filter-btn" type="button">⚙</button>
+			</section>
+
+			<section class="category-grid">
+				<a href="#" class="category-card active">Men</a>
+				<a href="#" class="category-card">Women</a>
+				<a href="#" class="category-card">Kid</a>
+				<a href="#" class="category-card">More</a>
+			</section>
+
+			<section class="collection-section">
+				<div class="section-header">
+					<div>
+						<p class="section-label">Trending</p>
+						<h2>New Arrivals</h2>
+					</div>
+					<a class="see-all" href="#">See All</a>
+				</div>
+				<div class="carousel" data-carousel="new-arrivals">
+					<button class="carousel-nav prev" aria-label="Previous items">
+						‹
+					</button>
+					<div class="carousel-track" id="newArrivalsTrack"></div>
+					<button class="carousel-nav next" aria-label="Next items">›</button>
+				</div>
+			</section>
+
+			<section class="collection-section">
+				<div class="section-header">
+					<div>
+						<p class="section-label">Exclusive</p>
+						<h2>Kurtha Collection</h2>
+					</div>
+					<a class="see-all" href="#">See All</a>
+				</div>
+				<div class="carousel" data-carousel="kurtha">
+					<button class="carousel-nav prev" aria-label="Previous items">
+						‹
+					</button>
+					<div class="carousel-track" id="kurthaTrack"></div>
+					<button class="carousel-nav next" aria-label="Next items">›</button>
+				</div>
+			</section>
+
+			<footer class="site-footer">
+				<div class="footer-links">
+					<div>
+						<h3>Shop</h3>
+						<a href="#">Men</a>
+						<a href="#">Women</a>
+						<a href="#">Kids</a>
+						<a href="#">New Arrivals</a>
+					</div>
+					<div>
+						<h3>Help</h3>
+						<a href="#">FAQ</a>
+						<a href="#">Shipping</a>
+						<a href="#">Returns</a>
+						<a href="#">Contact</a>
+					</div>
+					<div>
+						<h3>About</h3>
+						<a href="#">Our Story</a>
+						<a href="#">Careers</a>
+						<a href="#">Press</a>
+					</div>
+				</div>
+				<div class="footer-meta">
+					<span>© 2026 ThriftStore</span>
+					<span>Privacy Policy</span>
+					<span>Terms of Service</span>
+				</div>
+			</footer>
+		</div>
+
+		<script src="thrift.js"></script>
+	</body>
+</html>
