@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Admin Dashboard · ThriftStore</title>
+	<link rel="stylesheet" href="thrift.css" />
+	<link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+	<div class="admin-shell">
+		<aside class="admin-sidebar">
+			<div class="admin-brand">
+				<div class="brand-mark">Thrift</div>
+				<div>
+					ThriftStore
+					<small>Admin Panel</small>
+				</div>
+			</div>
+
+			<nav class="admin-nav">
+				<span class="admin-nav-label">Monitor</span>
+				<button class="admin-nav-item active" data-view="overview">
+					<span class="tag-dot"></span> Overview
+				</button>
+
+				<span class="admin-nav-label">Manage</span>
+				<button class="admin-nav-item" data-view="listings">
+					<span class="tag-dot"></span> Listings
+				</button>
+				<button class="admin-nav-item" data-view="orders">
+					<span class="tag-dot"></span> Orders
+				</button>
+			</nav>
+
+			<div class="admin-sidebar-footer">
+				Signed in as<br /><strong style="color:#fff">Admin</strong>
+			</div>
+		</aside>
+
+		<main class="admin-main">
+			<!-- ================= OVERVIEW ================= -->
+			<section class="admin-view active" id="view-overview">
+				<div class="admin-topbar">
+					<div>
+						<h1>Overview</h1>
+						<p>Here's what's happening across the marketplace today.</p>
+					</div>
+					<div class="topbar-right">
+						<div class="admin-search">
+							<span>🔎</span>
+							<input type="search" placeholder="Search users, listings…" />
+						</div>
+						<div class="admin-profile">
+							<div class="admin-avatar">A</div>
+							<span>Admin</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="stat-grid" id="statGrid"></div>
+
+				<div class="panel-row">
+					<div class="panel">
+						<div class="panel-header">
+							<h2>Sales this week</h2>
+							<span class="see-all">This week</span>
+						</div>
+						<div class="bar-chart" id="barChart"></div>
+					</div>
+
+					<div class="panel">
+						<div class="panel-header">
+							<h2>Listings by category</h2>
+						</div>
+						<div class="donut-wrap">
+							<svg width="140" height="140" viewBox="0 0 140 140" id="donutChart"></svg>
+							<ul class="donut-legend" id="donutLegend"></ul>
+						</div>
+					</div>
+				</div>
+
+				<div class="panel">
+					<div class="panel-header">
+						<h2>Recent activity</h2>
+					</div>
+					<div class="activity-list" id="activityList"></div>
+				</div>
+			</section>
+
+			<!-- ================= LISTINGS ================= -->
+			<section class="admin-view" id="view-listings">
+				<div class="admin-topbar">
+					<div>
+						<h1>Listings</h1>
+						<p>Items posted to the marketplace, awaiting review or already live.</p>
+					</div>
+					<div class="topbar-right">
+						<div class="admin-search">
+							<span>🔎</span>
+							<input type="search" id="listingSearch" placeholder="Search items…" />
+						</div>
+						<div class="admin-profile">
+							<div class="admin-avatar">A</div>
+							<span>Admin</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="table-panel">
+					<div class="table-toolbar">
+						<h2 id="listingCount">All listings</h2>
+						<div class="table-toolbar-right">
+							<div class="filter-pills" id="listingFilters">
+								<button class="filter-pill active" data-filter="all">All</button>
+								<button class="filter-pill" data-filter="live">Live</button>
+								<button class="filter-pill" data-filter="pending">Pending</button>
+								<button class="filter-pill" data-filter="flagged">Flagged</button>
+							</div>
+							<button class="btn-add" id="addProductBtn">+ Add Product</button>
+						</div>
+					</div>
+					<table class="admin-table">
+						<thead>
+							<tr>
+								<th>Item</th>
+								<th>Seller</th>
+								<th>Category</th>
+								<th>Price</th>
+								<th>Status</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody id="listingsTableBody"></tbody>
+					</table>
+				</div>
+			</section>
+
+			<!-- ================= ORDERS ================= -->
+			<section class="admin-view" id="view-orders">
+				<div class="admin-topbar">
+					<div>
+						<h1>Orders</h1>
+						<p>Recent purchases across the marketplace.</p>
+					</div>
+					<div class="topbar-right">
+						<div class="admin-profile">
+							<div class="admin-avatar">A</div>
+							<span>Admin</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="table-panel">
+					<div class="table-toolbar">
+						<h2>Latest orders</h2>
+					</div>
+					<table class="admin-table">
+						<thead>
+							<tr>
+								<th>Order</th>
+								<th>Buyer</th>
+								<th>Item</th>
+								<th>Amount</th>
+								<th>Status</th>
+							</tr>
+						</thead>
+						<tbody id="ordersTableBody"></tbody>
+					</table>
+				</div>
+			</section>
+		</main>
+	</div>
+
+	<!-- ================= PRODUCT MODAL ================= -->
+	<div class="modal-overlay" id="productModalOverlay">
+		<div class="modal">
+			<div class="modal-header">
+				<h2 id="modalTitle">Add Product</h2>
+				<button class="modal-close" id="modalCloseBtn">✕</button>
+			</div>
+			<form id="productForm">
+				<input type="hidden" id="productId" />
+				<label>
+					Item name
+					<input type="text" id="productName" required placeholder="e.g. Vintage Denim Jacket" />
+				</label>
+
+				<label>
+					Image URL
+					<input type="url" id="productImage" placeholder="https://example.com/photo.jpg" />
+				</label>
+				<img id="productImagePreview" alt="Preview" style="display:none; width:100%; max-height:160px; object-fit:cover; border-radius:14px; margin-top:-6px;" />
+
+				<div class="form-row">
+					<label>
+						Seller
+						<input type="text" id="productSeller" required placeholder="e.g. Sabin Shrestha" />
+					</label>
+					<label>
+						Category
+						<select id="productCategory">
+							<option>Men</option>
+							<option>Women</option>
+							<option>Kid</option>
+							<option>More</option>
+						</select>
+					</label>
+				</div>
+
+				<div class="form-row">
+					<label>
+						Price (Rs)
+						<input type="number" id="productPrice" required min="0" placeholder="0" />
+					</label>
+					<label>
+						Status
+						<select id="productStatus">
+							<option value="live">Live</option>
+							<option value="pending">Pending</option>
+							<option value="flagged">Flagged</option>
+						</select>
+					</label>
+				</div>
+
+				<div class="modal-actions">
+					<button type="button" class="btn btn-outline" id="modalCancelBtn">Cancel</button>
+					<button type="submit" class="btn btn-primary">Save Product</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<!-- ================= CONFIRM DELETE ================= -->
+	<div class="modal-overlay" id="deleteModalOverlay">
+		<div class="modal modal-small">
+			<h2>Remove this product?</h2>
+			<p class="modal-sub" id="deleteModalText">This can't be undone.</p>
+			<div class="modal-actions">
+				<button type="button" class="btn btn-outline" id="deleteCancelBtn">Cancel</button>
+				<button type="button" class="btn btn-danger" id="deleteConfirmBtn">Remove</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- ================= TOAST ================= -->
+	<div class="toast" id="toast"></div>
+
+	<script type="module" src="admin.js"></script>
+</body>
+</html>

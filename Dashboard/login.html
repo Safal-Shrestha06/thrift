@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Login - Thriftko Clone</title>
+		<link rel="stylesheet" href="thrift.css" />
+	</head>
+	<body>
+		<main class="form-page">
+			<section class="auth-panel">
+				<h1>Welcome Back</h1>
+				<p>Log in to continue shopping and managing your thrift listings.</p>
+				<form class="auth-form" id="loginForm">
+					<label>
+						Email address
+						<input
+							type="email"
+							id="loginEmail"
+							placeholder="you@example.com"
+							required
+						/>
+					</label>
+					<label>
+						Password
+						<input
+							type="password"
+							id="loginPassword"
+							placeholder="Enter your password"
+							required
+						/>
+					</label>
+					<p id="loginError" style="color:#c94b4b; font-weight:600; display:none; margin:0;"></p>
+					<button class="btn btn-primary" type="submit">Login</button>
+				</form>
+				<p class="auth-link">
+					New here? <a href="signup.html">Create an account</a>
+				</p>
+			</section>
+		</main>
+
+		<script type="module" src="login.js"></script>
+	</body>
+</html>
