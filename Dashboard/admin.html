@@ -115,6 +115,7 @@
 								<button class="filter-pill active" data-filter="all">All</button>
 								<button class="filter-pill" data-filter="live">Live</button>
 								<button class="filter-pill" data-filter="pending">Pending</button>
+								<button class="filter-pill" data-filter="out_of_stock">Out of Stock</button>
 								<button class="filter-pill" data-filter="flagged">Flagged</button>
 							</div>
 							<button class="btn-add" id="addProductBtn">+ Add Product</button>
@@ -163,6 +164,7 @@
 								<th>Item</th>
 								<th>Amount</th>
 								<th>Status</th>
+								<th></th>
 							</tr>
 						</thead>
 						<tbody id="ordersTableBody"></tbody>
@@ -218,6 +220,7 @@
 						<select id="productStatus">
 							<option value="live">Live</option>
 							<option value="pending">Pending</option>
+							<option value="out_of_stock">Out of Stock</option>
 							<option value="flagged">Flagged</option>
 						</select>
 					</label>

@@ -490,7 +490,24 @@ table.admin-table {
 
 .status-active, .status-live { background: rgba(27, 138, 90, 0.12); color: #1b8a5a; }
 .status-pending { background: rgba(212, 145, 0, 0.14); color: var(--accent-dark); }
+.status-out_of_stock { background: rgba(98, 98, 98, 0.14); color: #626262; }
 .status-suspended, .status-flagged { background: rgba(201, 75, 75, 0.12); color: #c94b4b; }
+.status-out_of_stock { background: rgba(98, 98, 98, 0.14); color: #626262; }
+.status-processing { background: rgba(59, 130, 246, 0.14); color: #3b82f6; }
+.status-shipped { background: rgba(139, 92, 246, 0.14); color: #8b5cf6; }
+.status-completed { background: rgba(27, 138, 90, 0.12); color: #1b8a5a; }
+.status-cancelled { background: rgba(201, 75, 75, 0.12); color: #c94b4b; }
+
+.status-select {
+    border-radius: 10px;
+    padding: 7px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+}
 
 .row-actions {
     display: flex;

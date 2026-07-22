@@ -225,7 +225,7 @@ button {
     position: absolute;
     inset: 20px;
     border-radius: 24px;
-    background: url('https: //cdn.thriftko.com/thriftko/1750706915874-thriftko_banners_(1).jpg') center/cover no-repeat;
+    background: url('https://cdn.thriftko.com/thriftko/1750706915874-thriftko_banners_(1).jpg') center/cover no-repeat;
     box-shadow: inset 0 0 0 120px rgba(255, 242, 194, 0.65);
 }
 
@@ -762,28 +762,32 @@ button {
     font-size: 0.85rem;
 }
 
-@media (max-width: 720px) {
-    .page-shell {
-        padding: 18px;
-    }
+/* ---------- Out of stock ---------- */
+.out-of-stock-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #1f1f23;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 999px;
+}
 
-    .site-header,
-    .search-panel,
-    .hero-buttons {
-        flex-direction: column;
-        align-items: stretch;
-    }
+.add-cart-btn:disabled {
+    background: var(--surface-soft);
+    color: var(--muted);
+    cursor: not-allowed;
+}
 
-    .filter-btn,
-    .btn {
-        width: 100%;
-    }
-
-    .category-grid {
-        gap: 12px;
-    }
-
-    .footer-links {
-        grid-template-columns: 1fr;
-    }
+/* ---------- Modal close (used by cart drawer's ✕ button) ---------- */
+.modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-soft);
+    display: grid;
+    place-items: center;
+    color: var(--text);
 }

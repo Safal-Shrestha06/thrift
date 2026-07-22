@@ -13,13 +13,13 @@ import {
 import { auth } from "./auth.js";
 
 const firebaseConfig = {
-	apiKey: "AIzaSyBKoqxEtKM0bqJNEA1nGAp7den0Z3jFEyk",
-	authDomain: "thriftstore-8e197.firebaseapp.com",
-	projectId: "thriftstore-8e197",
-	storageBucket: "thriftstore-8e197.firebasestorage.app",
-	messagingSenderId: "904578696771",
-	appId: "1:904578696771:web:30283b46a5066b1ac836f6",
-	measurementId: "G-3SGMZE55JR"
+	apiKey: "AIzaSyC8P6Ws_QBB3cXmdPjTQx1jGVqD8PYCYOw",
+	authDomain: "thriftstore01.firebaseapp.com",
+	projectId: "thriftstore01",
+	storageBucket: "thriftstore01.firebasestorage.app",
+	messagingSenderId: "904619736486",
+	appId: "1:904619736486:web:d153c192f51a168e09a367",
+	measurementId: "G-K2XFJ7V9WF"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -51,34 +51,41 @@ function productCardHTML(p) {
 		   <div style="display:none;width:100%;height:100%;background:linear-gradient(160deg,#fff1b5,#ffeb8a)"></div>`
 		: `<div style="width:100%;height:100%;background:linear-gradient(160deg,#fff1b5,#ffeb8a)"></div>`;
 
+	const outOfStock = p.status === 'out_of_stock';
+
 	return `
 		<div class="product-card">
 			<div class="product-image">
 				${imageHTML}
 				<button class="favorite-btn" aria-label="Save item">♡</button>
+				${outOfStock ? `<span class="out-of-stock-badge">Out of Stock</span>` : ''}
 			</div>
 			<div class="product-details">
 				<h3>${p.item}</h3>
 				<p>${p.category} · sold by ${p.seller}</p>
 				<div class="product-meta">
 					<span>Rs ${Number(p.price).toLocaleString()}</span>
-					<span>${p.status === 'live' ? 'In stock' : ''}</span>
+					<span>${outOfStock ? 'Out of stock' : 'In stock'}</span>
 				</div>
-				<button class="add-cart-btn" data-add-to-cart="${p.id}">Add to Cart</button>
+				<button class="add-cart-btn" data-add-to-cart="${p.id}" ${outOfStock ? 'disabled' : ''}>
+					${outOfStock ? 'Out of Stock' : 'Add to Cart'}
+				</button>
 			</div>
 		</div>
 	`;
 }
 
 function render() {
-	const liveProducts = allProducts.filter(p => p.status === 'live');
+	// Show live AND out-of-stock products (shoppers should see out-of-stock
+	// items, just unable to buy them). Pending/flagged stay hidden until approved.
+	const visibleProducts = allProducts.filter(p => p.status === 'live' || p.status === 'out_of_stock');
 
-	const newArrivals = liveProducts.filter(p =>
+	const newArrivals = visibleProducts.filter(p =>
 		p.category === activeCategory &&
 		p.item.toLowerCase().includes(searchTerm.toLowerCase())
 	);
 
-	const kurthaItems = liveProducts.filter(p => p.category === 'More');
+	const kurthaItems = visibleProducts.filter(p => p.category === 'More');
 
 	const newArrivalsTrack = document.getElementById('newArrivalsTrack');
 	const kurthaTrack = document.getElementById('kurthaTrack');
@@ -130,18 +137,23 @@ onSnapshot(productsCol, snapshot => {
 // it's personal/temporary data that doesn't need to sync across devices
 // for a project like this, and it works even before logging in.
 
-const CART_KEY = 'thriftstore_cart';
+// Each account gets its OWN cart, so if two people share a computer/browser
+// they don't see each other's items. Logged-out visitors get a separate
+// "guest" cart that's kept until they log in.
+function cartKey() {
+	return currentUser ? `thriftstore_cart_${currentUser.uid}` : 'thriftstore_cart_guest';
+}
 
 function loadCart() {
 	try {
-		return JSON.parse(localStorage.getItem(CART_KEY)) || [];
+		return JSON.parse(localStorage.getItem(cartKey())) || [];
 	} catch {
 		return [];
 	}
 }
 
 function saveCart(cart) {
-	localStorage.setItem(CART_KEY, JSON.stringify(cart));
+	localStorage.setItem(cartKey(), JSON.stringify(cart));
 	renderCart();
 }
 
@@ -300,6 +312,7 @@ function updateHeader(user) {
 onAuthStateChanged(auth, user => {
 	currentUser = user;
 	updateHeader(user);
+	renderCart(); // switch to this account's own cart (or the guest cart if logged out)
 });
 
 // ===================== Init =====================

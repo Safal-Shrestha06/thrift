@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Admin Login · ThriftStore</title>
+		<link rel="stylesheet" href="thrift.css" />
+	</head>
+	<body>
+		<main class="form-page">
+			<section class="auth-panel">
+				<h1>Admin Login</h1>
+				<p>Restricted area — sign in with your admin account to manage the store.</p>
+				<form class="auth-form" id="adminLoginForm">
+					<label>
+						Email address
+						<input
+							type="email"
+							id="adminEmail"
+							placeholder="admin@example.com"
+							required
+						/>
+					</label>
+					<label>
+						Password
+						<input
+							type="password"
+							id="adminPassword"
+							placeholder="Enter your password"
+							required
+						/>
+					</label>
+					<p id="adminLoginError" style="color:#c94b4b; font-weight:600; display:none; margin:0;"></p>
+					<button class="btn btn-primary" type="submit">Login as Admin</button>
+				</form>
+				<p class="auth-link">
+					Not an admin? <a href="thrift.html">Back to store</a>
+				</p>
+			</section>
+		</main>
+
+		<script type="module" src="admin-auth.js"></script>
+	</body>
+</html>

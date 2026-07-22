@@ -6,13 +6,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-	apiKey: "AIzaSyBKoqxEtKM0bqJNEA1nGAp7den0Z3jFEyk",
-	authDomain: "thriftstore-8e197.firebaseapp.com",
-	projectId: "thriftstore-8e197",
-	storageBucket: "thriftstore-8e197.firebasestorage.app",
-	messagingSenderId: "904578696771",
-	appId: "1:904578696771:web:30283b46a5066b1ac836f6",
-	measurementId: "G-3SGMZE55JR"
+	apiKey: "AIzaSyC8P6Ws_QBB3cXmdPjTQx1jGVqD8PYCYOw",
+	authDomain: "thriftstore01.firebaseapp.com",
+	projectId: "thriftstore01",
+	storageBucket: "thriftstore01.firebasestorage.app",
+	messagingSenderId: "904619736486",
+	appId: "1:904619736486:web:d153c192f51a168e09a367",
+	measurementId: "G-K2XFJ7V9WF"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -32,6 +32,10 @@ function avatarColor(seed) {
 }
 function initials(name) {
 	return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function formatStatusLabel(status) {
+	return (status || '').split('_').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ');
 }
 
 // listings and orders now come from Firestore in real time (see onSnapshot below)
@@ -73,7 +77,7 @@ document.querySelectorAll('.admin-nav-item').forEach(btn => {
 function renderStats() {
 	const totalProducts = listings.length;
 	const liveListings = listings.filter(l => l.status === 'live').length;
-	const totalSales = orders.reduce((sum, o) => sum + o.amount, 0);
+	const totalSales = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + o.amount, 0);
 	const flagged = listings.filter(l => l.status === 'flagged').length;
 
 	const stats = [
@@ -180,10 +184,12 @@ function renderListings() {
 			<td>${l.seller}</td>
 			<td>${l.category}</td>
 			<td>Rs ${l.price.toLocaleString()}</td>
-			<td><span class="status-pill status-${l.status}">${l.status[0].toUpperCase() + l.status.slice(1)}</span></td>
+			<td><span class="status-pill status-${l.status}">${formatStatusLabel(l.status)}</span></td>
 			<td>
 				<div class="row-actions">
-					${l.status !== 'live' ? `<button data-action="approve" data-id="${l.id}">Approve</button>` : ''}
+					${(l.status === 'pending' || l.status === 'flagged') ? `<button data-action="approve" data-id="${l.id}">Approve</button>` : ''}
+					${l.status === 'live' ? `<button data-action="out-of-stock" data-id="${l.id}">Mark Out of Stock</button>` : ''}
+					${l.status === 'out_of_stock' ? `<button data-action="in-stock" data-id="${l.id}">Mark In Stock</button>` : ''}
 					<button data-action="edit" data-id="${l.id}">Edit</button>
 					<button class="danger" data-action="remove" data-id="${l.id}">Remove</button>
 				</div>
@@ -213,6 +219,16 @@ document.getElementById('listingsTableBody').addEventListener('click', async e =
 
 	if (btn.dataset.action === 'approve') {
 		await updateDoc(doc(db, 'products', id), { status: 'live' });
+	}
+
+	if (btn.dataset.action === 'out-of-stock') {
+		await updateDoc(doc(db, 'products', id), { status: 'out_of_stock' });
+		showToast('Marked out of stock');
+	}
+
+	if (btn.dataset.action === 'in-stock') {
+		await updateDoc(doc(db, 'products', id), { status: 'live' });
+		showToast('Marked back in stock');
 	}
 
 	if (btn.dataset.action === 'edit') {
@@ -358,26 +374,47 @@ function showToast(msg) {
 
 // ===================== Orders table =====================
 
+const ORDER_STATUSES = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
+
 function renderOrders() {
 	if (orders.length === 0) {
 		document.getElementById('ordersTableBody').innerHTML =
-			`<tr><td colspan="5" style="color:var(--muted); text-align:center; padding:24px">No orders yet — orders placed at checkout on your storefront will show up here.</td></tr>`;
+			`<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:24px">No orders yet — orders placed at checkout on your storefront will show up here.</td></tr>`;
 		return;
 	}
 
 	document.getElementById('ordersTableBody').innerHTML = orders.map(o => {
 		const itemsSummary = (o.items || []).map(i => `${i.item} ×${i.qty}`).join(', ');
+		const currentStatus = o.status || 'pending';
+		const options = ORDER_STATUSES.map(s =>
+			`<option value="${s}" ${s === currentStatus ? 'selected' : ''}>${formatStatusLabel(s)}</option>`
+		).join('');
 		return `
 			<tr>
 				<td>${o.id.slice(0, 8)}</td>
 				<td>${o.buyer || o.buyerEmail || 'Unknown'}</td>
 				<td>${itemsSummary || '—'}</td>
 				<td>Rs ${Number(o.amount || 0).toLocaleString()}</td>
-				<td><span class="status-pill status-${o.status || 'pending'}">${(o.status || 'pending').replace(/^\w/, c => c.toUpperCase())}</span></td>
+				<td><span class="status-pill status-${currentStatus}">${formatStatusLabel(currentStatus)}</span></td>
+				<td>
+					<select class="status-select" data-order-id="${o.id}">${options}</select>
+				</td>
 			</tr>
 		`;
 	}).join('');
 }
+
+document.getElementById('ordersTableBody').addEventListener('change', async e => {
+	const select = e.target.closest('[data-order-id]');
+	if (!select) return;
+	try {
+		await updateDoc(doc(db, 'orders', select.dataset.orderId), { status: select.value });
+		showToast('Order status updated');
+	} catch (err) {
+		console.error(err);
+		showToast('Could not update order — check console');
+	}
+});
 
 // ===================== Init =====================
 
