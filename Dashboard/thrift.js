@@ -28,7 +28,7 @@ const productsCol = collection(db, "products");
 const ordersCol = collection(db, "orders");
 
 let allProducts = [];
-let activeCategory = 'Men';
+let activeCategory = 'All';
 let searchTerm = '';
 let currentUser = null;
 
@@ -80,23 +80,17 @@ function render() {
 	// items, just unable to buy them). Pending/flagged stay hidden until approved.
 	const visibleProducts = allProducts.filter(p => p.status === 'live' || p.status === 'out_of_stock');
 
-	const newArrivals = visibleProducts.filter(p =>
-		p.category === activeCategory &&
+	const filtered = visibleProducts.filter(p =>
+		(activeCategory === 'All' || p.category === activeCategory) &&
 		p.item.toLowerCase().includes(searchTerm.toLowerCase())
 	);
 
-	const kurthaItems = visibleProducts.filter(p => p.category === 'More');
+	document.getElementById('shopHeading').textContent = activeCategory === 'All' ? 'All Products' : activeCategory;
 
-	const newArrivalsTrack = document.getElementById('newArrivalsTrack');
-	const kurthaTrack = document.getElementById('kurthaTrack');
-
-	newArrivalsTrack.innerHTML = newArrivals.length
-		? newArrivals.map(productCardHTML).join('')
+	const productsGrid = document.getElementById('productsGrid');
+	productsGrid.innerHTML = filtered.length
+		? filtered.map(productCardHTML).join('')
 		: `<p style="color:var(--muted)">No items yet in this category.</p>`;
-
-	kurthaTrack.innerHTML = kurthaItems.length
-		? kurthaItems.map(productCardHTML).join('')
-		: `<p style="color:var(--muted)">No items yet.</p>`;
 }
 
 document.querySelectorAll('.category-card').forEach(card => {

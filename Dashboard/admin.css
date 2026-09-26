@@ -638,6 +638,28 @@ table.admin-table {
     background: #fff;
 }
 
+#adminGateForm {
+    display: grid;
+    gap: 16px;
+}
+
+#adminGateForm label {
+    display: grid;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text);
+}
+
+#adminGateForm input {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-size: 0.92rem;
+    font-family: inherit;
+    background: #fff;
+}
+
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;

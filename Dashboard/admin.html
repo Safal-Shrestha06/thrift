@@ -8,7 +8,30 @@
 	<link rel="stylesheet" href="admin.css" />
 </head>
 <body>
-	<div class="admin-shell">
+	<!-- ================= ADMIN LOGIN GATE ================= -->
+	<div class="modal-overlay open" id="adminGateOverlay">
+		<div class="modal modal-small">
+			<div class="modal-header">
+				<h2>Admin Login</h2>
+			</div>
+			<form id="adminGateForm">
+				<label>
+					Email
+					<input type="email" id="adminGateEmail" required placeholder="admin@example.com" />
+				</label>
+				<label>
+					Password
+					<input type="password" id="adminGatePassword" required placeholder="••••••••" />
+				</label>
+				<p id="adminGateError" style="color:#e5484d; display:none; font-size:14px; margin-top:-6px;"></p>
+				<div class="modal-actions">
+					<button type="submit" class="btn btn-primary" style="width:100%">Login</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div class="admin-shell" id="adminShell" style="display:none">
 		<aside class="admin-sidebar">
 			<div class="admin-brand">
 				<div class="brand-mark">Thrift</div>
@@ -35,6 +58,7 @@
 
 			<div class="admin-sidebar-footer">
 				Signed in as<br /><strong style="color:#fff">Admin</strong>
+				<button id="adminLogoutBtn" style="margin-top:10px; width:100%; padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:transparent; color:#fff; cursor:pointer; font-size:0.85rem;">Logout</button>
 			</div>
 		</aside>
 
@@ -173,6 +197,7 @@
 			</section>
 		</main>
 	</div>
+	<!-- /#adminShell -->
 
 	<!-- ================= PRODUCT MODAL ================= -->
 	<div class="modal-overlay" id="productModalOverlay">
@@ -249,6 +274,7 @@
 	<!-- ================= TOAST ================= -->
 	<div class="toast" id="toast"></div>
 
+	<script type="module" src="admin-gate.js"></script>
 	<script type="module" src="admin.js"></script>
 </body>
 </html>
