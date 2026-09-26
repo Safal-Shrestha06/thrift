@@ -5,7 +5,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-	getFirestore, collection, onSnapshot, addDoc
+	getFirestore, collection, onSnapshot, addDoc, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
 	onAuthStateChanged, signOut
@@ -26,6 +26,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const productsCol = collection(db, "products");
 const ordersCol = collection(db, "orders");
+const adsCol = collection(db, "ads");
 
 let allProducts = [];
 let activeCategory = 'All';
@@ -125,6 +126,52 @@ onSnapshot(productsCol, snapshot => {
 	allProducts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 	render();
 }, err => console.error('Firestore error:', err));
+
+// ===================== Ads (admin-published hero banner + page banners) =====================
+
+let allAds = [];
+
+// Fills the hero image + discount stat from an active "hero" placement
+// ad, or falls back to the original hardcoded look when there isn't one.
+function applyHeroAd(ad) {
+	const wrap = document.getElementById('heroGraphicWrap');
+	if (ad && ad.image) {
+		const tag = ad.link ? 'a' : 'div';
+		const linkAttrs = ad.link ? ` href="${ad.link}" target="_blank" rel="noopener"` : '';
+		// No cream wash on admin-published images — that overlay was
+		// tuned for the original soft placeholder photo and makes a
+		// bold banner (like a red sale graphic) look faded.
+		wrap.innerHTML = `<${tag} class="hero-graphic" id="heroGraphic"${linkAttrs} style="--hero-image:url('${ad.image}'); --hero-overlay: rgba(0,0,0,0)"></${tag}>`;
+	} else {
+		wrap.innerHTML = `<div class="hero-graphic" id="heroGraphic"></div>`;
+	}
+	document.getElementById('heroStatLabel').textContent = (ad && ad.statLabel) || 'Take Home Up to';
+	document.getElementById('heroStatValue').textContent = (ad && ad.statValue) || '80%';
+}
+
+function renderAds() {
+	const activeAds = allAds.filter(a => a.status === 'active');
+
+	// Page-banner strip (#adsSection) — everything that isn't hero-placed.
+	const bannerAds = activeAds.filter(a => a.placement !== 'hero');
+	document.getElementById('adsSection').innerHTML = bannerAds.map(a => {
+		const tag = a.link ? 'a' : 'div';
+		const linkAttrs = a.link ? ` href="${a.link}" target="_blank" rel="noopener"` : '';
+		return `<${tag} class="ads-banner-item" style="background-image:url('${a.image}')"${linkAttrs}><span>${a.title}</span></${tag}>`;
+	}).join('');
+
+	// Hero banner — if more than one active hero ad exists, the most
+	// recently created one wins.
+	const heroAds = activeAds
+		.filter(a => a.placement === 'hero')
+		.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+	applyHeroAd(heroAds[0] || null);
+}
+
+onSnapshot(adsCol, snapshot => {
+	allAds = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+	renderAds();
+}, err => console.error('Firestore error (ads):', err));
 
 // ===================== Cart (saved in localStorage) =====================
 // The cart lives in the browser (localStorage) rather than Firestore —
@@ -269,7 +316,8 @@ document.getElementById('checkoutBtn').addEventListener('click', async () => {
 
 		saveCart([]);
 		closeCart();
-		showToast('Order placed! Thank you.');
+		showToast('Order submitted. Waiting for admin confirmation.');
+		openOrders();
 	} catch (err) {
 		console.error(err);
 		showToast('Something went wrong placing your order');
@@ -277,6 +325,86 @@ document.getElementById('checkoutBtn').addEventListener('click', async () => {
 		btn.disabled = false;
 		btn.textContent = 'Checkout';
 	}
+});
+
+// ===================== My Orders (customer order tracking) =====================
+// Read-only for the customer — only Admin can change an order's status
+// (enforced by Firestore rules, not just this UI).
+
+const ORDER_STATUS_LABELS = {
+	pending: 'Pending — Waiting for admin confirmation',
+	confirmed: 'Confirmed ✓',
+	processing: 'Processing',
+	shipped: 'Shipped',
+	completed: 'Completed',
+	cancelled: 'Cancelled',
+};
+
+let myOrders = [];
+let unsubscribeMyOrders = null;
+
+function renderMyOrders() {
+	const listEl = document.getElementById('myOrdersList');
+	if (!listEl) return;
+
+	if (!currentUser) {
+		listEl.innerHTML = `<p style="color:var(--muted)">Log in to see your orders.</p>`;
+		return;
+	}
+
+	listEl.innerHTML = myOrders.length
+		? myOrders.map(o => {
+			const itemsSummary = (o.items || []).map(i => `${i.item} ×${i.qty}`).join(', ');
+			const statusText = ORDER_STATUS_LABELS[o.status] || o.status;
+			return `
+				<div class="cart-item">
+					<div class="cart-item-info" style="flex:1">
+						<h4>Order #${o.id.slice(0, 8)}</h4>
+						<span>${itemsSummary}</span>
+						<div style="margin-top:6px; font-weight:600">Rs ${Number(o.amount || 0).toLocaleString()}</div>
+						<div style="margin-top:4px; font-size:0.85rem; color:var(--muted)">${statusText}</div>
+					</div>
+				</div>
+			`;
+		}).join('')
+		: `<p style="color:var(--muted)">You haven't placed any orders yet.</p>`;
+}
+
+function subscribeToMyOrders(user) {
+	if (unsubscribeMyOrders) {
+		unsubscribeMyOrders();
+		unsubscribeMyOrders = null;
+	}
+	if (!user) {
+		myOrders = [];
+		renderMyOrders();
+		return;
+	}
+	const myOrdersQuery = query(ordersCol, where('buyerEmail', '==', user.email));
+	unsubscribeMyOrders = onSnapshot(myOrdersQuery, snapshot => {
+		myOrders = snapshot.docs
+			.map(d => ({ id: d.id, ...d.data() }))
+			.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+		renderMyOrders();
+	}, err => console.error('Firestore error (my orders):', err));
+}
+
+function openOrders() {
+	if (!currentUser) {
+		showToast('Please log in to view your orders');
+		window.location.href = 'login.html';
+		return;
+	}
+	document.getElementById('ordersOverlay').classList.add('open');
+}
+function closeOrders() {
+	document.getElementById('ordersOverlay').classList.remove('open');
+}
+
+document.getElementById('ordersToggleBtn').addEventListener('click', openOrders);
+document.getElementById('ordersCloseBtn').addEventListener('click', closeOrders);
+document.getElementById('ordersOverlay').addEventListener('click', e => {
+	if (e.target.id === 'ordersOverlay') closeOrders();
 });
 
 // ===================== Auth state (Login / Sign Up vs logged-in chip) =====================
@@ -307,6 +435,7 @@ onAuthStateChanged(auth, user => {
 	currentUser = user;
 	updateHeader(user);
 	renderCart(); // switch to this account's own cart (or the guest cart if logged out)
+	subscribeToMyOrders(user); // switch to this account's own orders
 });
 
 // ===================== Init =====================

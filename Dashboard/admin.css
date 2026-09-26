@@ -490,7 +490,9 @@ table.admin-table {
 
 .status-active, .status-live { background: rgba(27, 138, 90, 0.12); color: #1b8a5a; }
 .status-pending { background: rgba(212, 145, 0, 0.14); color: var(--accent-dark); }
+.status-confirmed { background: rgba(59, 130, 246, 0.14); color: #3b82f6; }
 .status-out_of_stock { background: rgba(98, 98, 98, 0.14); color: #626262; }
+.status-inactive { background: rgba(98, 98, 98, 0.14); color: #626262; }
 .status-suspended, .status-flagged { background: rgba(201, 75, 75, 0.12); color: #c94b4b; }
 .status-out_of_stock { background: rgba(98, 98, 98, 0.14); color: #626262; }
 .status-processing { background: rgba(59, 130, 246, 0.14); color: #3b82f6; }
@@ -630,6 +632,29 @@ table.admin-table {
 
 #productForm input,
 #productForm select {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-size: 0.92rem;
+    font-family: inherit;
+    background: #fff;
+}
+
+#adForm {
+    display: grid;
+    gap: 16px;
+}
+
+#adForm label {
+    display: grid;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text);
+}
+
+#adForm input,
+#adForm select {
     padding: 12px 14px;
     border-radius: 12px;
     border: 1px solid var(--border);

@@ -23,6 +23,9 @@
 					<a class="btn btn-outline" href="login.html">Login</a>
 					<a class="btn btn-primary" href="signup.html">Sign Up</a>
 				</div>
+				<button class="cart-btn" id="ordersToggleBtn" aria-label="Open my orders" title="My Orders">
+					📦
+				</button>
 				<button class="cart-btn" id="cartToggleBtn" aria-label="Open cart">
 					🛒 <span class="cart-count" id="cartCount">0</span>
 				</button>
@@ -44,14 +47,18 @@
 				<div class="hero-media">
 					<div class="hero-card">
 						<div class="hero-badge">ThriftStore</div>
-						<div class="hero-graphic"></div>
+						<div class="hero-graphic-wrap" id="heroGraphicWrap">
+							<div class="hero-graphic" id="heroGraphic"></div>
+						</div>
 						<div class="hero-stat">
-							<span>Take Home Up to</span>
-							<strong>80%</strong>
+							<span id="heroStatLabel">Take Home Up to</span>
+							<strong id="heroStatValue">80%</strong>
 						</div>
 					</div>
 				</div>
 			</section>
+
+			<section class="ads-banner-strip" id="adsSection"></section>
 
 			<section class="search-panel">
 				<div class="search-bar">
@@ -130,6 +137,17 @@
 						Checkout
 					</button>
 				</div>
+			</aside>
+		</div>
+
+		<!-- ================= MY ORDERS DRAWER ================= -->
+		<div class="cart-overlay" id="ordersOverlay">
+			<aside class="cart-drawer">
+				<div class="cart-drawer-header">
+					<h2>My Orders</h2>
+					<button class="modal-close" id="ordersCloseBtn">✕</button>
+				</div>
+				<div class="cart-items" id="myOrdersList"></div>
 			</aside>
 		</div>
 

@@ -54,6 +54,9 @@
 				<button class="admin-nav-item" data-view="orders">
 					<span class="tag-dot"></span> Orders
 				</button>
+				<button class="admin-nav-item" data-view="ads">
+					<span class="tag-dot"></span> Ads
+				</button>
 			</nav>
 
 			<div class="admin-sidebar-footer">
@@ -195,6 +198,42 @@
 					</table>
 				</div>
 			</section>
+
+			<!-- ================= ADS ================= -->
+			<section class="admin-view" id="view-ads">
+				<div class="admin-topbar">
+					<div>
+						<h1>Ads</h1>
+						<p>Publish the homepage hero banner or a page banner strip.</p>
+					</div>
+					<div class="topbar-right">
+						<div class="admin-profile">
+							<div class="admin-avatar">A</div>
+							<span>Admin</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="table-panel">
+					<div class="table-toolbar">
+						<h2 id="adCount">All ads</h2>
+						<div class="table-toolbar-right">
+							<button class="btn-add" id="addAdBtn">+ Add Ad</button>
+						</div>
+					</div>
+					<table class="admin-table">
+						<thead>
+							<tr>
+								<th>Title</th>
+								<th>Placement</th>
+								<th>Status</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody id="adsTableBody"></tbody>
+					</table>
+				</div>
+			</section>
 		</main>
 	</div>
 	<!-- /#adminShell -->
@@ -267,6 +306,79 @@
 			<div class="modal-actions">
 				<button type="button" class="btn btn-outline" id="deleteCancelBtn">Cancel</button>
 				<button type="button" class="btn btn-danger" id="deleteConfirmBtn">Remove</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- ================= AD MODAL (Add / Edit) ================= -->
+	<div class="modal-overlay" id="adModalOverlay">
+		<div class="modal">
+			<div class="modal-header">
+				<h2 id="adModalTitle">Add Ad</h2>
+				<button class="modal-close" id="adModalCloseBtn">✕</button>
+			</div>
+			<form id="adForm">
+				<input type="hidden" id="adId" />
+				<label>
+					Title
+					<input type="text" id="adTitle" required placeholder="e.g. Monsoon Sale" />
+				</label>
+
+				<label>
+					Image URL
+					<input type="url" id="adImage" required placeholder="https://example.com/banner.jpg" />
+				</label>
+				<img id="adImagePreview" alt="Preview" style="display:none; width:100%; max-height:160px; object-fit:cover; border-radius:14px; margin-top:-6px;" />
+
+				<label>
+					Link URL (optional)
+					<input type="url" id="adLink" placeholder="https://example.com" />
+				</label>
+
+				<div class="form-row">
+					<label>
+						Placement
+						<select id="adPlacement">
+							<option value="banner">Page Banner</option>
+							<option value="hero">Hero Banner</option>
+						</select>
+					</label>
+					<label>
+						Status
+						<select id="adStatus">
+							<option value="active">Active</option>
+							<option value="inactive">Inactive</option>
+						</select>
+					</label>
+				</div>
+
+				<div class="form-row" id="adHeroFields" style="display:none">
+					<label>
+						Stat value
+						<input type="text" id="adStatValue" placeholder="e.g. 80%" />
+					</label>
+					<label>
+						Stat label
+						<input type="text" id="adStatLabel" placeholder="e.g. Take Home Up to" />
+					</label>
+				</div>
+
+				<div class="modal-actions">
+					<button type="button" class="btn btn-outline" id="adModalCancelBtn">Cancel</button>
+					<button type="submit" class="btn btn-primary">Save Ad</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<!-- ================= AD DELETE CONFIRM ================= -->
+	<div class="modal-overlay" id="adDeleteModalOverlay">
+		<div class="modal modal-small">
+			<h2>Remove this ad?</h2>
+			<p class="modal-sub" id="adDeleteModalText">This can't be undone.</p>
+			<div class="modal-actions">
+				<button type="button" class="btn btn-outline" id="adDeleteCancelBtn">Cancel</button>
+				<button type="button" class="btn btn-danger" id="adDeleteConfirmBtn">Remove</button>
 			</div>
 		</div>
 	</div>

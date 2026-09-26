@@ -19,6 +19,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const productsCol = collection(db, "products");
 const ordersCol = collection(db, "orders");
+const adsCol = collection(db, "ads");
 
 // ===================== Mock data (users / orders / activity stay local for now) =====================
 
@@ -374,7 +375,7 @@ function showToast(msg) {
 
 // ===================== Orders table =====================
 
-const ORDER_STATUSES = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
+const ORDER_STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'completed', 'cancelled'];
 
 function renderOrders() {
 	if (orders.length === 0) {
@@ -386,9 +387,19 @@ function renderOrders() {
 	document.getElementById('ordersTableBody').innerHTML = orders.map(o => {
 		const itemsSummary = (o.items || []).map(i => `${i.item} ×${i.qty}`).join(', ');
 		const currentStatus = o.status || 'pending';
-		const options = ORDER_STATUSES.map(s =>
-			`<option value="${s}" ${s === currentStatus ? 'selected' : ''}>${formatStatusLabel(s)}</option>`
-		).join('');
+
+		// New orders need an explicit admin confirmation before anything
+		// else — the status dropdown only appears once an order is past
+		// "pending", so customers can never skip that confirmation step.
+		const actionCell = currentStatus === 'pending'
+			? `<button class="btn-add" data-confirm-order="${o.id}">Confirm Order</button>`
+			: (() => {
+				const options = ORDER_STATUSES.map(s =>
+					`<option value="${s}" ${s === currentStatus ? 'selected' : ''}>${formatStatusLabel(s)}</option>`
+				).join('');
+				return `<select class="status-select" data-order-id="${o.id}">${options}</select>`;
+			})();
+
 		return `
 			<tr>
 				<td>${o.id.slice(0, 8)}</td>
@@ -396,13 +407,23 @@ function renderOrders() {
 				<td>${itemsSummary || '—'}</td>
 				<td>Rs ${Number(o.amount || 0).toLocaleString()}</td>
 				<td><span class="status-pill status-${currentStatus}">${formatStatusLabel(currentStatus)}</span></td>
-				<td>
-					<select class="status-select" data-order-id="${o.id}">${options}</select>
-				</td>
+				<td>${actionCell}</td>
 			</tr>
 		`;
 	}).join('');
 }
+
+document.getElementById('ordersTableBody').addEventListener('click', async e => {
+	const confirmBtn = e.target.closest('[data-confirm-order]');
+	if (!confirmBtn) return;
+	try {
+		await updateDoc(doc(db, 'orders', confirmBtn.dataset.confirmOrder), { status: 'confirmed' });
+		showToast('Order confirmed');
+	} catch (err) {
+		console.error(err);
+		showToast('Could not confirm order — check console');
+	}
+});
 
 document.getElementById('ordersTableBody').addEventListener('change', async e => {
 	const select = e.target.closest('[data-order-id]');
@@ -414,6 +435,187 @@ document.getElementById('ordersTableBody').addEventListener('change', async e =>
 		console.error(err);
 		showToast('Could not update order — check console');
 	}
+});
+
+// ===================== Ads =====================
+
+let ads = [];
+
+function formatPlacementLabel(placement) {
+	return placement === 'hero' ? 'Hero Banner' : 'Page Banner';
+}
+
+function renderAdsTable() {
+	document.getElementById('adCount').textContent = `${ads.length} ad${ads.length !== 1 ? 's' : ''}`;
+
+	document.getElementById('adsTableBody').innerHTML = ads.length
+		? ads.map(a => `
+			<tr>
+				<td>
+					<div class="cell-user">
+						<div class="item-thumb" style="background:${a.image ? `url('${a.image}') center/cover` : avatarColor(a.id)}"></div>
+						<div class="name">${a.title}</div>
+					</div>
+				</td>
+				<td>${formatPlacementLabel(a.placement)}</td>
+				<td><span class="status-pill status-${a.status === 'active' ? 'active' : 'inactive'}">${a.status === 'active' ? 'Active' : 'Inactive'}</span></td>
+				<td>
+					<div class="row-actions">
+						<button data-action="edit-ad" data-id="${a.id}">Edit</button>
+						<button class="danger" data-action="remove-ad" data-id="${a.id}">Remove</button>
+					</div>
+				</td>
+			</tr>
+		`).join('')
+		: `<tr><td colspan="4" style="color:var(--muted); text-align:center; padding:24px">No ads yet — add one to publish the homepage hero banner or a page banner.</td></tr>`;
+}
+
+document.getElementById('adsTableBody').addEventListener('click', e => {
+	const btn = e.target.closest('button');
+	if (!btn) return;
+	const id = btn.dataset.id;
+
+	if (btn.dataset.action === 'edit-ad') {
+		openAdModal(ads.find(x => x.id === id));
+	}
+	if (btn.dataset.action === 'remove-ad') {
+		openAdDeleteModal(id);
+	}
+});
+
+// ===================== Ad modal (Add / Edit) =====================
+
+const adModalOverlay = document.getElementById('adModalOverlay');
+const adForm = document.getElementById('adForm');
+const adModalTitle = document.getElementById('adModalTitle');
+const adHeroFields = document.getElementById('adHeroFields');
+const adPlacementSelect = document.getElementById('adPlacement');
+
+function toggleAdHeroFields() {
+	adHeroFields.style.display = adPlacementSelect.value === 'hero' ? 'grid' : 'none';
+}
+adPlacementSelect.addEventListener('change', toggleAdHeroFields);
+
+function openAdModal(ad) {
+	adForm.reset();
+	document.getElementById('adImagePreview').style.display = 'none';
+	if (ad) {
+		adModalTitle.textContent = 'Edit Ad';
+		document.getElementById('adId').value = ad.id;
+		document.getElementById('adTitle').value = ad.title;
+		document.getElementById('adImage').value = ad.image || '';
+		document.getElementById('adLink').value = ad.link || '';
+		document.getElementById('adPlacement').value = ad.placement || 'banner';
+		document.getElementById('adStatus').value = ad.status || 'active';
+		document.getElementById('adStatValue').value = ad.statValue || '';
+		document.getElementById('adStatLabel').value = ad.statLabel || '';
+		if (ad.image) showAdImagePreview(ad.image);
+	} else {
+		adModalTitle.textContent = 'Add Ad';
+		document.getElementById('adId').value = '';
+		document.getElementById('adPlacement').value = 'banner';
+		document.getElementById('adStatus').value = 'active';
+	}
+	toggleAdHeroFields();
+	adModalOverlay.classList.add('open');
+	document.getElementById('adTitle').focus();
+}
+
+function showAdImagePreview(url) {
+	const img = document.getElementById('adImagePreview');
+	img.src = url;
+	img.style.display = 'block';
+}
+
+document.getElementById('adImage').addEventListener('input', e => {
+	const url = e.target.value.trim();
+	const img = document.getElementById('adImagePreview');
+	if (url) {
+		showAdImagePreview(url);
+	} else {
+		img.style.display = 'none';
+	}
+});
+
+document.getElementById('adImagePreview').addEventListener('error', () => {
+	document.getElementById('adImagePreview').style.display = 'none';
+});
+
+function closeAdModal() {
+	adModalOverlay.classList.remove('open');
+}
+
+document.getElementById('addAdBtn').addEventListener('click', () => openAdModal(null));
+document.getElementById('adModalCloseBtn').addEventListener('click', closeAdModal);
+document.getElementById('adModalCancelBtn').addEventListener('click', closeAdModal);
+adModalOverlay.addEventListener('click', e => {
+	if (e.target === adModalOverlay) closeAdModal();
+});
+
+adForm.addEventListener('submit', async e => {
+	e.preventDefault();
+	const id = document.getElementById('adId').value;
+	const placement = document.getElementById('adPlacement').value;
+
+	const data = {
+		title: document.getElementById('adTitle').value.trim(),
+		image: document.getElementById('adImage').value.trim(),
+		link: document.getElementById('adLink').value.trim(),
+		placement,
+		status: document.getElementById('adStatus').value,
+		// Only meaningful for hero-placement ads, but harmless to store
+		// as empty strings otherwise.
+		statValue: placement === 'hero' ? document.getElementById('adStatValue').value.trim() : '',
+		statLabel: placement === 'hero' ? document.getElementById('adStatLabel').value.trim() : '',
+	};
+
+	try {
+		if (id) {
+			await updateDoc(doc(db, 'ads', id), data);
+			showToast('Ad updated');
+		} else {
+			await addDoc(adsCol, { ...data, createdAt: new Date().toISOString() });
+			showToast('Ad added');
+		}
+		closeAdModal();
+	} catch (err) {
+		console.error(err);
+		showToast('Something went wrong — check console');
+	}
+	// no manual re-render needed — onSnapshot below updates the table live
+});
+
+// ===================== Ad delete confirm modal =====================
+
+const adDeleteModalOverlay = document.getElementById('adDeleteModalOverlay');
+let pendingAdDeleteId = null;
+
+function openAdDeleteModal(id) {
+	const ad = ads.find(x => x.id === id);
+	pendingAdDeleteId = id;
+	document.getElementById('adDeleteModalText').textContent = `"${ad.title}" will be permanently removed. This can't be undone.`;
+	adDeleteModalOverlay.classList.add('open');
+}
+
+function closeAdDeleteModal() {
+	adDeleteModalOverlay.classList.remove('open');
+	pendingAdDeleteId = null;
+}
+
+document.getElementById('adDeleteCancelBtn').addEventListener('click', closeAdDeleteModal);
+adDeleteModalOverlay.addEventListener('click', e => {
+	if (e.target === adDeleteModalOverlay) closeAdDeleteModal();
+});
+
+document.getElementById('adDeleteConfirmBtn').addEventListener('click', async () => {
+	try {
+		await deleteDoc(doc(db, 'ads', pendingAdDeleteId));
+		showToast('Ad removed');
+	} catch (err) {
+		console.error(err);
+		showToast('Something went wrong — check console');
+	}
+	closeAdDeleteModal();
 });
 
 // ===================== Init =====================
@@ -444,4 +646,14 @@ onSnapshot(ordersCol, snapshot => {
 	renderStats();
 }, err => {
 	console.error('Firestore error (orders):', err);
+});
+
+// Live subscription to the "ads" collection — the storefront (thrift.js)
+// reads this same collection to render the hero banner and page banners.
+onSnapshot(adsCol, snapshot => {
+	ads = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+	renderAdsTable();
+}, err => {
+	console.error('Firestore error (ads):', err);
+	showToast('Could not load ads — check Firestore rules/console');
 });
