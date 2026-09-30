@@ -133,6 +133,17 @@
 						<span>Total</span>
 						<strong id="cartTotal">Rs 0</strong>
 					</div>
+					<div class="payment-methods" id="paymentMethods">
+						<span class="payment-methods-title">Payment method</span>
+						<label class="payment-option">
+							<input type="radio" name="paymentMethod" value="esewa" checked />
+							<span>Pay online with eSewa <small>(test mode)</small></span>
+						</label>
+						<label class="payment-option">
+							<input type="radio" name="paymentMethod" value="cod" />
+							<span>Cash on delivery</span>
+						</label>
+					</div>
 					<button class="btn btn-primary" id="checkoutBtn" style="width: 100%">
 						Checkout
 					</button>
@@ -149,6 +160,26 @@
 				</div>
 				<div class="cart-items" id="myOrdersList"></div>
 			</aside>
+		</div>
+
+		<!-- ================= PRODUCT DETAIL MODAL ================= -->
+		<div class="pd-overlay" id="pdOverlay">
+			<div class="pd-modal">
+				<button class="pd-close" id="pdCloseBtn" aria-label="Close">✕</button>
+				<div class="pd-image" id="pdImage"></div>
+				<div class="pd-body">
+					<span class="pd-category" id="pdCategory"></span>
+					<h2 id="pdTitle"></h2>
+					<div class="pd-price" id="pdPrice"></div>
+					<div class="pd-meta-row">
+						<span id="pdCondition"></span>
+						<span id="pdStock"></span>
+					</div>
+					<p class="pd-seller">Previously owned by <strong id="pdSeller"></strong></p>
+					<p class="pd-description" id="pdDescription"></p>
+					<button class="add-cart-btn" id="pdAddToCartBtn">Add to Cart</button>
+				</div>
+			</div>
 		</div>
 
 		<div class="toast" id="toast"></div>

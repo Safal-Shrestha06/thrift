@@ -583,6 +583,11 @@ table.admin-table {
     border-radius: 24px;
     padding: 28px;
     box-shadow: var(--shadow);
+    /* long forms (photo preview etc.) scroll inside the panel instead of running off-screen */
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .modal-small {
@@ -631,13 +636,15 @@ table.admin-table {
 }
 
 #productForm input,
-#productForm select {
+#productForm select,
+#productForm textarea {
     padding: 12px 14px;
     border-radius: 12px;
     border: 1px solid var(--border);
     font-size: 0.92rem;
     font-family: inherit;
     background: #fff;
+    resize: vertical;
 }
 
 #adForm {
@@ -696,6 +703,25 @@ table.admin-table {
     justify-content: flex-end;
     gap: 12px;
     margin-top: 6px;
+    /* Save / Cancel stay visible while the form scrolls */
+    position: sticky;
+    bottom: -28px;
+    background: #fff;
+    padding: 14px 0 28px;
+    margin-bottom: -28px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.photo-remove-btn {
+    justify-self: start;
+    align-self: start;
+    width: auto;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 999px;
+    background: #fff;
+    cursor: pointer;
 }
 
 .modal-actions .btn {
@@ -756,4 +782,135 @@ table.admin-table {
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
     .panel-row { grid-template-columns: 1fr; }
     .admin-main { padding: 20px; }
+}
+
+
+/* ---------- Orders view polish (scoped to #view-orders only) ---------- */
+#view-orders .table-panel {
+    overflow-x: auto;
+}
+
+#view-orders .table-toolbar {
+    align-items: center;
+}
+
+#view-orders .admin-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#view-orders .admin-table th {
+    padding: 12px 10px;
+    white-space: nowrap;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+}
+
+#view-orders .admin-table td {
+    padding: 12px 10px;
+    vertical-align: middle;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+#view-orders .admin-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+#view-orders .admin-table tbody tr:hover {
+    background: rgba(248, 184, 0, 0.06);
+}
+
+/* checkbox column */
+#view-orders .admin-table th:nth-child(1),
+#view-orders .admin-table td:nth-child(1) {
+    width: 44px;
+    padding-right: 0;
+    text-align: center;
+}
+
+#view-orders input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: #f8b800;
+    cursor: pointer;
+}
+
+#view-orders input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+/* order id: one line, monospace */
+#view-orders .admin-table td:nth-child(2) {
+    white-space: nowrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #55555c;
+}
+
+/* buyer */
+#view-orders .admin-table td:nth-child(3) {
+    min-width: 100px;
+    font-weight: 600;
+}
+
+/* items: allow wrapping but keep the column tidy */
+#view-orders .admin-table td:nth-child(4) {
+    min-width: 150px;
+    max-width: 220px;
+    line-height: 1.45;
+    color: #55555c;
+}
+
+/* amount */
+#view-orders .admin-table td:nth-child(5) {
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+/* payment */
+#view-orders .admin-table td:nth-child(6) {
+    min-width: 150px;
+    max-width: 190px;
+    line-height: 1.35;
+}
+
+#view-orders .status-pill {
+    white-space: nowrap;
+}
+
+/* action column: dropdown + delete side by side */
+#view-orders .admin-table td:last-child {
+    white-space: nowrap;
+    text-align: left;
+}
+
+#view-orders .status-select {
+    vertical-align: middle;
+}
+
+#view-orders .btn-danger {
+    margin-left: 6px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    vertical-align: middle;
+}
+
+#view-orders .btn-add {
+    padding: 9px 18px;
+    font-size: 0.88rem;
+    white-space: nowrap;
+}
+
+/* let the Orders area shrink to the screen (the table scrolls sideways inside its card) */
+.admin-main:has(#view-orders.active) {
+    min-width: 0;
+}
+
+#view-orders .admin-table {
+    min-width: 780px;
 }

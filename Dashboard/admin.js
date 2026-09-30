@@ -4,6 +4,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
 	getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { verifyEsewaResponse } from "./esewa.js";
 
 const firebaseConfig = {
 	apiKey: "AIzaSyC8P6Ws_QBB3cXmdPjTQx1jGVqD8PYCYOw",
@@ -241,29 +242,83 @@ document.getElementById('listingsTableBody').addEventListener('click', async e =
 	}
 });
 
+// ===================== Photo upload helper =====================
+// Picks a photo from the computer, shrinks it in the browser and turns it
+// into a small JPEG "data URL" that is stored in the product's `image`
+// field in Firestore — no Firebase Storage setup needed. Works everywhere
+// the storefront already shows product.image.
+
+const MAX_PHOTO_DIMENSION = 900;        // px, longest side
+const MAX_PHOTO_BYTES = 200 * 1024;     // target size after compression
+
+function loadImageFromFile(file) {
+	return new Promise((resolve, reject) => {
+		const url = URL.createObjectURL(file);
+		const img = new Image();
+		img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+		img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that image')); };
+		img.src = url;
+	});
+}
+
+async function fileToCompressedDataUrl(file, maxDim = MAX_PHOTO_DIMENSION, maxBytes = MAX_PHOTO_BYTES) {
+	if (!file.type.startsWith('image/')) throw new Error('Please choose an image file');
+	if (file.size > 15 * 1024 * 1024) throw new Error('That image is too large (max 15 MB)');
+
+	const img = await loadImageFromFile(file);
+	const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+	const canvas = document.createElement('canvas');
+	canvas.width = Math.max(1, Math.round(img.width * scale));
+	canvas.height = Math.max(1, Math.round(img.height * scale));
+	const ctx = canvas.getContext('2d');
+	ctx.fillStyle = '#fff'; // PNGs with transparency -> white background in JPEG
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+	let quality = 0.85;
+	let dataUrl = canvas.toDataURL('image/jpeg', quality);
+	while (dataUrl.length * 0.75 > maxBytes && quality > 0.4) {
+		quality -= 0.1;
+		dataUrl = canvas.toDataURL('image/jpeg', quality);
+	}
+	return dataUrl;
+}
+
 // ===================== Product modal (Add / Edit) =====================
 
 const productModalOverlay = document.getElementById('productModalOverlay');
 const productForm = document.getElementById('productForm');
 const modalTitle = document.getElementById('modalTitle');
 
+let uploadedProductImage = null; // compressed data URL from the file picker (or an existing uploaded photo)
+
 function openProductModal(product) {
 	productForm.reset();
+	uploadedProductImage = null;
 	document.getElementById('productImagePreview').style.display = 'none';
+	document.getElementById('productImageRemoveBtn').style.display = 'none';
 	if (product) {
 		modalTitle.textContent = 'Edit Product';
 		document.getElementById('productId').value = product.id;
 		document.getElementById('productName').value = product.item;
-		document.getElementById('productImage').value = product.image || '';
+		// Uploaded photos are data URLs — keep them out of the URL box
+		if (product.image && product.image.startsWith('data:')) {
+			uploadedProductImage = product.image;
+		} else {
+			document.getElementById('productImage').value = product.image || '';
+		}
 		document.getElementById('productSeller').value = product.seller;
 		document.getElementById('productCategory').value = product.category;
 		document.getElementById('productPrice').value = product.price;
 		document.getElementById('productStatus').value = product.status;
+		document.getElementById('productCondition').value = product.condition || 'Good';
+		document.getElementById('productDescription').value = product.description || '';
 		if (product.image) showImagePreview(product.image);
 	} else {
 		modalTitle.textContent = 'Add Product';
 		document.getElementById('productId').value = '';
 		document.getElementById('productStatus').value = 'pending';
+		document.getElementById('productCondition').value = 'Good';
 	}
 	productModalOverlay.classList.add('open');
 	document.getElementById('productName').focus();
@@ -273,15 +328,42 @@ function showImagePreview(url) {
 	const img = document.getElementById('productImagePreview');
 	img.src = url;
 	img.style.display = 'block';
+	document.getElementById('productImageRemoveBtn').style.display = 'inline-block';
 }
+
+function clearProductImage() {
+	uploadedProductImage = null;
+	document.getElementById('productImage').value = '';
+	document.getElementById('productImageFile').value = '';
+	document.getElementById('productImagePreview').style.display = 'none';
+	document.getElementById('productImageRemoveBtn').style.display = 'none';
+}
+
+document.getElementById('productImageRemoveBtn').addEventListener('click', clearProductImage);
+
+document.getElementById('productImageFile').addEventListener('change', async e => {
+	const file = e.target.files[0];
+	if (!file) return;
+	try {
+		uploadedProductImage = await fileToCompressedDataUrl(file);
+		document.getElementById('productImage').value = ''; // the uploaded photo wins over a pasted URL
+		showImagePreview(uploadedProductImage);
+	} catch (err) {
+		e.target.value = '';
+		showToast(err.message);
+	}
+});
 
 document.getElementById('productImage').addEventListener('input', e => {
 	const url = e.target.value.trim();
 	const img = document.getElementById('productImagePreview');
 	if (url) {
+		uploadedProductImage = null;
+		document.getElementById('productImageFile').value = '';
 		showImagePreview(url);
-	} else {
+	} else if (!uploadedProductImage) {
 		img.style.display = 'none';
+		document.getElementById('productImageRemoveBtn').style.display = 'none';
 	}
 });
 
@@ -305,11 +387,13 @@ productForm.addEventListener('submit', async e => {
 	const id = document.getElementById('productId').value;
 	const data = {
 		item: document.getElementById('productName').value.trim(),
-		image: document.getElementById('productImage').value.trim(),
+		image: uploadedProductImage || document.getElementById('productImage').value.trim(),
 		seller: document.getElementById('productSeller').value.trim(),
 		category: document.getElementById('productCategory').value,
 		price: Number(document.getElementById('productPrice').value),
 		status: document.getElementById('productStatus').value,
+		condition: document.getElementById('productCondition').value,
+		description: document.getElementById('productDescription').value.trim(),
 	};
 
 	try {
@@ -377,10 +461,72 @@ function showToast(msg) {
 
 const ORDER_STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'completed', 'cancelled'];
 
+// eSewa payments: re-check the stored response so the admin can see
+// whether it is genuine (valid signature, COMPLETE, matches this order).
+const esewaChecks = {}; // orderId -> true | false (cached)
+
+async function checkEsewaOrder(o) {
+	const r = o.esewaResponse;
+	return !!r
+		&& await verifyEsewaResponse(r)
+		&& r.status === 'COMPLETE'
+		&& r.transaction_uuid === o.id
+		&& Number(String(r.total_amount).replace(/,/g, '')) === Number(o.amount);
+}
+
+function paymentCell(o) {
+	if (o.paymentMethod === 'esewa') {
+		const ref = o.esewaTransactionCode ? `<div style="font-size:0.75rem; color:var(--muted)">Ref ${o.esewaTransactionCode}</div>` : '';
+		const c = esewaChecks[o.id];
+		const verdict = c === undefined
+			? `<div style="font-size:0.75rem; color:var(--muted)" data-esewa-check="${o.id}">Checking…</div>`
+			: (c
+				? `<div style="font-size:0.75rem; color:#1b8a5a" data-esewa-check="${o.id}">✓ Signature verified</div>`
+				: `<div style="font-size:0.75rem; color:#c94b4b" data-esewa-check="${o.id}">⚠ Could not verify — check eSewa</div>`);
+		return `<span class="status-pill ${o.paymentStatus === 'paid' ? 'status-active' : 'status-pending'}">eSewa ${o.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}</span>${ref}${verdict}`;
+	}
+	if (o.paymentMethod === 'cod') {
+		return `<span class="status-pill status-pending">Cash on delivery</span>`;
+	}
+	return '<span style="color:var(--muted)">—</span>';
+}
+
+function runEsewaChecks() {
+	orders.filter(o => o.paymentMethod === 'esewa' && esewaChecks[o.id] === undefined).forEach(async o => {
+		esewaChecks[o.id] = await checkEsewaOrder(o);
+		const el = document.querySelector(`[data-esewa-check="${o.id}"]`);
+		if (el) {
+			el.style.color = esewaChecks[o.id] ? '#1b8a5a' : '#c94b4b';
+			el.textContent = esewaChecks[o.id] ? '✓ Signature verified' : '⚠ Could not verify — check eSewa';
+		}
+	});
+}
+
+// Only cancelled orders can be selected / deleted (multi-select).
+const selectedOrderIds = new Set();
+
+function updateOrderSelectionUI() {
+	const cancelled = orders.filter(o => (o.status || 'pending') === 'cancelled');
+	// forget selections for orders that were deleted or are no longer cancelled
+	[...selectedOrderIds].forEach(id => {
+		if (!cancelled.some(o => o.id === id)) selectedOrderIds.delete(id);
+	});
+
+	const btn = document.getElementById('deleteSelectedOrdersBtn');
+	btn.textContent = `Delete selected (${selectedOrderIds.size})`;
+	btn.style.display = selectedOrderIds.size ? 'inline-block' : 'none';
+
+	const all = document.getElementById('ordersSelectAll');
+	all.disabled = cancelled.length === 0;
+	all.checked = cancelled.length > 0 && selectedOrderIds.size === cancelled.length;
+	all.indeterminate = selectedOrderIds.size > 0 && selectedOrderIds.size < cancelled.length;
+}
+
 function renderOrders() {
 	if (orders.length === 0) {
+		updateOrderSelectionUI();
 		document.getElementById('ordersTableBody').innerHTML =
-			`<tr><td colspan="6" style="color:var(--muted); text-align:center; padding:24px">No orders yet — orders placed at checkout on your storefront will show up here.</td></tr>`;
+			`<tr><td colspan="8" style="color:var(--muted); text-align:center; padding:24px">No orders yet — orders placed at checkout on your storefront will show up here.</td></tr>`;
 		return;
 	}
 
@@ -391,27 +537,82 @@ function renderOrders() {
 		// New orders need an explicit admin confirmation before anything
 		// else — the status dropdown only appears once an order is past
 		// "pending", so customers can never skip that confirmation step.
+		const isCancelled = currentStatus === 'cancelled';
 		const actionCell = currentStatus === 'pending'
 			? `<button class="btn-add" data-confirm-order="${o.id}">Confirm Order</button>`
 			: (() => {
 				const options = ORDER_STATUSES.map(s =>
 					`<option value="${s}" ${s === currentStatus ? 'selected' : ''}>${formatStatusLabel(s)}</option>`
 				).join('');
-				return `<select class="status-select" data-order-id="${o.id}">${options}</select>`;
+				const deleteBtn = isCancelled
+					? ` <button type="button" class="btn-danger" style="border:0; cursor:pointer; padding:8px 14px;" data-delete-order="${o.id}">Delete</button>`
+					: '';
+				return `<select class="status-select" data-order-id="${o.id}">${options}</select>${deleteBtn}`;
 			})();
 
 		return `
 			<tr>
+				<td>${isCancelled ? `<input type="checkbox" data-select-order="${o.id}" aria-label="Select order ${o.id.slice(0, 8)}" ${selectedOrderIds.has(o.id) ? 'checked' : ''} />` : ''}</td>
 				<td>${o.id.slice(0, 8)}</td>
 				<td>${o.buyer || o.buyerEmail || 'Unknown'}</td>
 				<td>${itemsSummary || '—'}</td>
 				<td>Rs ${Number(o.amount || 0).toLocaleString()}</td>
+				<td>${paymentCell(o)}</td>
 				<td><span class="status-pill status-${currentStatus}">${formatStatusLabel(currentStatus)}</span></td>
 				<td>${actionCell}</td>
 			</tr>
 		`;
 	}).join('');
+	updateOrderSelectionUI();
+	runEsewaChecks();
 }
+
+async function deleteCancelledOrders(ids) {
+	// safety: only ever delete orders that are cancelled right now
+	const targets = ids.filter(id => orders.find(o => o.id === id && (o.status || 'pending') === 'cancelled'));
+	if (targets.length === 0) return;
+
+	const msg = targets.length === 1
+		? 'Permanently delete this cancelled order? This cannot be undone.'
+		: `Permanently delete ${targets.length} cancelled orders? This cannot be undone.`;
+	if (!confirm(msg)) return;
+
+	const results = await Promise.allSettled(targets.map(id => deleteDoc(doc(db, 'orders', id))));
+	const failed = results.filter(r => r.status === 'rejected');
+	failed.forEach(r => console.error(r.reason));
+	targets.forEach((id, i) => { if (results[i].status === 'fulfilled') selectedOrderIds.delete(id); });
+
+	if (failed.length === 0) {
+		showToast(targets.length === 1 ? 'Order deleted' : `${targets.length} orders deleted`);
+	} else {
+		showToast(`Deleted ${targets.length - failed.length}, could not delete ${failed.length} — check Firestore rules`);
+	}
+	updateOrderSelectionUI();
+}
+
+document.getElementById('deleteSelectedOrdersBtn').addEventListener('click', () => {
+	deleteCancelledOrders([...selectedOrderIds]);
+});
+
+document.getElementById('ordersSelectAll').addEventListener('change', e => {
+	const cancelled = orders.filter(o => (o.status || 'pending') === 'cancelled');
+	selectedOrderIds.clear();
+	if (e.target.checked) cancelled.forEach(o => selectedOrderIds.add(o.id));
+	renderOrders();
+});
+
+document.getElementById('ordersTableBody').addEventListener('change', e => {
+	const box = e.target.closest('[data-select-order]');
+	if (!box) return;
+	if (box.checked) selectedOrderIds.add(box.dataset.selectOrder);
+	else selectedOrderIds.delete(box.dataset.selectOrder);
+	updateOrderSelectionUI();
+});
+
+document.getElementById('ordersTableBody').addEventListener('click', e => {
+	const delBtn = e.target.closest('[data-delete-order]');
+	if (delBtn) deleteCancelledOrders([delBtn.dataset.deleteOrder]);
+});
 
 document.getElementById('ordersTableBody').addEventListener('click', async e => {
 	const confirmBtn = e.target.closest('[data-confirm-order]');
@@ -496,14 +697,21 @@ function toggleAdHeroFields() {
 }
 adPlacementSelect.addEventListener('change', toggleAdHeroFields);
 
+let uploadedAdImage = null; // compressed data URL from the file picker
+
 function openAdModal(ad) {
 	adForm.reset();
+	uploadedAdImage = null;
 	document.getElementById('adImagePreview').style.display = 'none';
 	if (ad) {
 		adModalTitle.textContent = 'Edit Ad';
 		document.getElementById('adId').value = ad.id;
 		document.getElementById('adTitle').value = ad.title;
-		document.getElementById('adImage').value = ad.image || '';
+		if (ad.image && ad.image.startsWith('data:')) {
+			uploadedAdImage = ad.image;
+		} else {
+			document.getElementById('adImage').value = ad.image || '';
+		}
 		document.getElementById('adLink').value = ad.link || '';
 		document.getElementById('adPlacement').value = ad.placement || 'banner';
 		document.getElementById('adStatus').value = ad.status || 'active';
@@ -527,12 +735,27 @@ function showAdImagePreview(url) {
 	img.style.display = 'block';
 }
 
+document.getElementById('adImageFile').addEventListener('change', async e => {
+	const file = e.target.files[0];
+	if (!file) return;
+	try {
+		uploadedAdImage = await fileToCompressedDataUrl(file, 1600, 350 * 1024);
+		document.getElementById('adImage').value = '';
+		showAdImagePreview(uploadedAdImage);
+	} catch (err) {
+		e.target.value = '';
+		showToast(err.message);
+	}
+});
+
 document.getElementById('adImage').addEventListener('input', e => {
 	const url = e.target.value.trim();
 	const img = document.getElementById('adImagePreview');
 	if (url) {
+		uploadedAdImage = null;
+		document.getElementById('adImageFile').value = '';
 		showAdImagePreview(url);
-	} else {
+	} else if (!uploadedAdImage) {
 		img.style.display = 'none';
 	}
 });
@@ -556,10 +779,15 @@ adForm.addEventListener('submit', async e => {
 	e.preventDefault();
 	const id = document.getElementById('adId').value;
 	const placement = document.getElementById('adPlacement').value;
+	const adImageValue = uploadedAdImage || document.getElementById('adImage').value.trim();
+	if (!adImageValue) {
+		showToast('Please upload a banner image or paste an image URL');
+		return;
+	}
 
 	const data = {
 		title: document.getElementById('adTitle').value.trim(),
-		image: document.getElementById('adImage').value.trim(),
+		image: adImageValue,
 		link: document.getElementById('adLink').value.trim(),
 		placement,
 		status: document.getElementById('adStatus').value,

@@ -182,14 +182,19 @@
 				<div class="table-panel">
 					<div class="table-toolbar">
 						<h2>Latest orders</h2>
+						<div class="table-toolbar-right">
+							<button type="button" class="btn-danger" id="deleteSelectedOrdersBtn" style="display:none; border:0; cursor:pointer;">Delete selected (0)</button>
+						</div>
 					</div>
 					<table class="admin-table">
 						<thead>
 							<tr>
+								<th style="width:36px"><input type="checkbox" id="ordersSelectAll" title="Select all cancelled orders" aria-label="Select all cancelled orders" /></th>
 								<th>Order</th>
 								<th>Buyer</th>
 								<th>Item</th>
 								<th>Amount</th>
+								<th>Payment</th>
 								<th>Status</th>
 								<th></th>
 							</tr>
@@ -253,14 +258,20 @@
 				</label>
 
 				<label>
-					Image URL
+					Product photo
+					<input type="file" id="productImageFile" accept="image/*" />
+					<small style="color:var(--muted)">Upload a photo (JPG/PNG/WebP). It is resized automatically.</small>
+				</label>
+				<label>
+					or paste an image URL
 					<input type="url" id="productImage" placeholder="https://example.com/photo.jpg" />
 				</label>
 				<img id="productImagePreview" alt="Preview" style="display:none; width:100%; max-height:160px; object-fit:cover; border-radius:14px; margin-top:-6px;" />
+				<button type="button" class="photo-remove-btn" id="productImageRemoveBtn" style="display:none;">Remove photo</button>
 
 				<div class="form-row">
 					<label>
-						Seller
+						Previously owned by
 						<input type="text" id="productSeller" required placeholder="e.g. Sabin Shrestha" />
 					</label>
 					<label>
@@ -289,6 +300,21 @@
 						</select>
 					</label>
 				</div>
+
+				<label>
+					Condition
+					<select id="productCondition">
+						<option value="New">New</option>
+						<option value="Like New">Like New</option>
+						<option value="Good">Good</option>
+						<option value="Fair">Fair</option>
+					</select>
+				</label>
+
+				<label>
+					Description
+					<textarea id="productDescription" rows="4" placeholder="Fabric, fit, measurements, any flaws — whatever a buyer should know before purchasing."></textarea>
+				</label>
 
 				<div class="modal-actions">
 					<button type="button" class="btn btn-outline" id="modalCancelBtn">Cancel</button>
@@ -325,8 +351,13 @@
 				</label>
 
 				<label>
-					Image URL
-					<input type="url" id="adImage" required placeholder="https://example.com/banner.jpg" />
+					Banner image
+					<input type="file" id="adImageFile" accept="image/*" />
+					<small style="color:var(--muted)">Upload a banner, or paste a URL below.</small>
+				</label>
+				<label>
+					or paste an image URL
+					<input type="url" id="adImage" placeholder="https://example.com/banner.jpg" />
 				</label>
 				<img id="adImagePreview" alt="Preview" style="display:none; width:100%; max-height:160px; object-fit:cover; border-radius:14px; margin-top:-6px;" />
 
